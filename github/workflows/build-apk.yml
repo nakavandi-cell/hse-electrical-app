@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch:
+  workflow_dispatch: # امکان اجرای دستی با یک کلیک
 
 jobs:
   build:
@@ -25,15 +25,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Ensure www directory exists
+        run: |
+          mkdir -p www
+          ls -la www
 
       - name: Install Project Dependencies
         run: |
-          npm install
+          npm install --no-audit --no-fund
 
       - name: Initialize and Sync Capacitor Android Project
         run: |
-          npx cap add android
+          npx cap telemetry off
+          npx cap add android || true
           npx cap sync android
 
       - name: Setup Android SDK Tools
@@ -43,7 +48,7 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Finished APK Artifact
         uses: actions/upload-artifact@v4
