@@ -15,23 +15,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Java Development Kit (JDK)
+      - name: Set up Java Development Kit (JDK 17)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Set up Node.js Environment
+      - name: Set up Node.js (v20)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Ensure www directory exists
+      - name: Ensure www Directory Exists
         run: |
           mkdir -p www
-          ls -la www
 
-      - name: Install Project Dependencies
+      - name: Install Node Dependencies
         run: |
           npm install --no-audit --no-fund
 
@@ -41,14 +40,15 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      - name: Setup Android SDK Tools
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Build Debug Android APK via Gradle
+      - name: Build Debug Android APK
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload Finished APK Artifact
         uses: actions/upload-artifact@v4
