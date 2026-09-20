@@ -1,0 +1,9 @@
+{
+  "appId": "ir.hse.electrical.inspection",
+  "appName": "بازرسی ایمنی برق",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true
+  }
+}
