@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>سامانه بازرسی ایمنی برق</title>
+  <!-- فونت و کتابخانه‌های آفلاین و CDN (در اولین بارگیری کش می‌شوند) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/misc/Farsi-Digits/Vazirmatn-FD-font-face.css">
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --neutral: #64748b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Vazirmatn FD', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding-bottom: 80px;
+    }
+
+    /* هدر اپلیکیشن */
+    header {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: white;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .container {
+      padding: 14px;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    /* کارت‌ها و ماژول‌ها */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ماژول‌های صفحه اصلی */
+    .module-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .module-btn {
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .module-btn:active {
+      transform: scale(0.98);
+      border-color: var(--primary);
+    }
+
+    .module-btn h3 {
+      font-size: 1rem;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .module-btn span {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    /* فرم هدر شناسنامه */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* بخش سوالات */
+    .question-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .question-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .radio-btn {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1.5px solid #cbd5e1;
+      cursor: pointer;
+      background: #fff;
+      user-select: none;
+    }
+
+    .radio-btn.selected-yes {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .radio-btn.selected-no {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    .radio-btn.selected-na {
+      background: var(--neutral);
+      color: white;
+      border-color: var(--neutral);
+    }
+
+    .comment-input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.8rem;
+      box-sizing: border-box;
+      display: none;
+    }
+
+    /* دکمه‌های اصلی */
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .btn-primary { background: var(--primary); }
+    .btn-success { background: var(--success); }
+    .btn-danger { background: var(--danger); }
+    .btn-neutral { background: var(--neutral); }
+
+    /* نوار پایین */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      height: 60px;
+      background: white;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #64748b;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .badge-danger {
+      background: #fee2e2;
+      color: var(--danger);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .history-card {
+      border-right: 4px solid var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .history-card.has-issue {
+      border-right-color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 id="page-title">سامانه جامع بازرسی ایمنی برق</h1>
+  </header>
+
+  <div class="container">
+    <!-- تب ۱: صفحه انتخاب چک‌لیست -->
+    <div id="view-modules">
+      <div class="module-grid">
+        <button class="module-btn" onclick="startInspection(1)">
+          <h3>۱. بازرسی ایمنی تابلوهای برق</h3>
+          <span>شینه‌ها، کلیدها، RCD، حریم دسترسی و ارتینگ</span>
+        </button>
+
+        <button class="module-btn" onclick="startInspection(2)">
+          <h3>۲. بازرسی ایمنی پست‌های برق</h3>
+          <span>ترانسفورماتورها، تهویه، سیستم اطفاء حریق و CPR</span>
+        </button>
+
+        <button class="module-btn" onclick="startInspection(3)">
+          <h3>۳. تجهیزات برقی پرتابل و ابزارها</h3>
+          <span>کابل‌ها، دو‌شاخه‌ها، تست PAT و عایق‌کاری دوبل</span>
+        </button>
+
+        <button class="module-btn" onclick="startInspection(4)">
+          <h3>۴. ایمنی عمومی و رفتاری برق</h3>
+          <span>سیستم LOTO، استاپ‌های اضطراری، PPE و ترنچ‌ها</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- تب ۲: فرم تکمیل بازرسی -->
+    <div id="view-form" style="display: none;">
+      <div class="card">
+        <div class="card-title">شناسنامه و مشخصات بازرسی</div>
+        <div class="form-group">
+          <label>نوع بازرسی</label>
+          <input type="text" id="ins-type" class="form-control" readonly style="background:#f1f5f9;">
+        </div>
+        <div class="form-group">
+          <label>تاریخ بازرسی</label>
+          <input type="text" id="ins-date" class="form-control" placeholder="مثال: ۱۴۰۳/۰۷/۱۵">
+        </div>
+        <div class="form-group">
+          <label>شیفت کاری</label>
+          <select id="ins-shift" class="form-control">
+            <option value="صبح">صبح</option>
+            <option value="عصر">عصر</option>
+            <option value="شب">شب</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>نام و نام خانوادگی بازرس</label>
+          <input type="text" id="ins-inspector" class="form-control" placeholder="نام کارشناس HSE">
+        </div>
+        <div class="form-group">
+          <label>کد / تگ تجهیز</label>
+          <input type="text" id="ins-tag" class="form-control" placeholder="مثال: MCC-01">
+        </div>
+        <div class="form-group">
+          <label>محل و موقعیت استقرار</label>
+          <input type="text" id="ins-location" class="form-control" placeholder="سالن تولید / واحد">
+        </div>
+        <div class="form-group">
+          <label>سطح ولتاژ</label>
+          <select id="ins-voltage" class="form-control">
+            <option value="فشار ضعیف LV">فشار ضعیف LV (کمتر از 1000V)</option>
+            <option value="فشار متوسط MV">فشار متوسط MV (تا 33kV)</option>
+            <option value="فشار قوی HV">فشار قوی HV (بیشتر از 33kV)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">آیتم‌های ارزیابی و تطابق</div>
+        <div id="questions-container"></div>
+      </div>
+
+      <button class="btn btn-success" onclick="saveInspection()">ذخیره نهایی و ثبت در پایگاه داده</button>
+      <button class="btn btn-neutral" onclick="cancelInspection()">انصراف و بازگشت</button>
+    </div>
+
+    <!-- تب ۳: سوابق و خروجی اکسل -->
+    <div id="view-history" style="display: none;">
+      <div class="card">
+        <div class="card-title">فیلتر و جستجوی لحظه‌ای</div>
+        <input type="text" id="search-input" class="form-control" placeholder="جستجو بر اساس تگ، بازرس، موقعیت..." oninput="renderHistory()">
+        <button class="btn btn-primary" style="margin-top: 10px;" onclick="exportAllToExcel()">خروجی تجمیعی کل سوابق (Excel)</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- منوی ناوبری پایین صفحه -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-btn-home" onclick="switchTab('modules')">
+      <span>بازرسی جدید</span>
+    </button>
+    <button class="nav-item" id="nav-btn-history" onclick="switchTab('history')">
+      <span>تاریخچه و اکسل</span>
+    </button>
+  </nav>
+
+  <script>
+    // پایگاه‌داده قدرتمند IndexedDB با Dexie
+    const db = new Dexie("HSE_Electrical_DB");
+    db.version(1).stores({
+      inspections: "++id, type, date, tag, inspector, location, hasNonCompliance"
+    });
+
+    // لیست سوالات تخصصی
+    const questionBank = {
+      1: [
+        "درب تابلو دارای قفل مناسب و در حین کار بسته است.",
+        "علائم هشدار خطر برق، پلاک مشخصات و ولتاژ کاری نصب و خواناست.",
+        "حریم دسترسی جلوی تابلو (حداقل ۹۰ تا ۱۰۰ سانتی‌متر) کاملاً باز است.",
+        "کف محوطه جلوی تابلو مجهز به فرش/کفپوش عایق استاندارد است.",
+        "گلندها و درزگیری ورود/خروج کابل‌ها سالم و ضد رطوبت/گردوغبار (IP) است.",
+        "بدنه فلزی و درب تابلو دارای اتصال زمین (ارت) محکم و سالم است.",
+        "دیاگرام تک‌خطی (Single Line) داخل تابلو موجود و به‌روز است.",
+        "کلیدها، فیوزها و شینه‌ها فاقد آثار داغ‌شدگی، ذوب یا بوی سوختگی هستند.",
+        "کلید محافظ جان (RCD/ELCB) نصب و دکمه تست عملکرد دارد.",
+        "پوشش‌های حفاظتی پلکسی روی شینه‌ها و ترمینال‌های برق‌دار تعبیه شده است."
+      ],
+      2: [
+        "درب ورود و پنجره‌ها قفل و تردد افراد کاملاً کنترل می‌شود.",
+        "فن‌ها و سیستم تهویه فعال و دمای ترانس/پست در حد مجاز است.",
+        "روشنایی عمومی و سیستم روشنایی اضطراری کاملاً سالم و فعال است.",
+        "فضای پست خشک، تمیز و فاقد هرگونه نشتی آب، روغن یا مواد اشتعال‌زاست.",
+        "سطح و فشار روغن و رطوبت‌گیر (سیلیکاژل) ترانسفورماتورها نرمال است.",
+        "مقره‌ها، سرکابل‌ها و شینه‌ها سالم، تمیز و فاقد اثر آرک یا تخلیه جزئی است.",
+        "کپسول‌های آتش‌نشانی CO2 و سیستم اطفاء حریق در دسترس و شارژ دارند.",
+        "تجهیزات نجات و حفاظت فردی ولتاژ بالا (دستکش، استیک، فازمتر) موجود است.",
+        "دستورالعمل ایمنی و تابلوی احیای قلبی‌ریوی (CPR) روی دیوار نصب است."
+      ],
+      3: [
+        "کابل برق دستگاه سالم، یکپارچه و فاقد پارگی یا چسب‌خوردگی است.",
+        "دوشاخه صنعتی استاندارد و ارت‌دار نصب است (عدم اتصال مستقیم سیم به پریز).",
+        "کلمپ نگه‌دارنده ورودی کابل به دستگاه (Strain Relief) سالم است.",
+        "کلید قطع و وصل و ضامن ایمنی دستگاه بدون گیرکردن کار می‌کند.",
+        "دستگاه دارای علامت عایق دوبل بوده یا پیوستگی سیم ارت سالم است.",
+        "گارد محافظ (سنگ فرز، اره) و دسته‌های کمکی محکم نصب شده‌اند.",
+        "قرقره‌های رابط دارای محافظ RCD، پریز ارت‌دار و بدنه سالم هستند.",
+        "دستگاه فاقد جرقه شدید در زغال‌ها، صدای غیرعادی یا بوی سوختگی است.",
+        "برچسب بازرسی دوره‌ای و تست ایمنی الکتریکی (PAT) معتبر دارد."
+      ],
+      4: [
+        "سیم‌کشی‌ها از درون داکت، لوله یا ترنچ عبور کرده و سیم‌کشی روباز وجود ندارد.",
+        "کلیدها، پریزها و جعبه تقسیم‌ها سالم، دارای قاب و بدون شکستگی هستند.",
+        "تأسیسات برقی محیط‌های مرطوب دارای استاندارد ضدرطوبت (واترپروف) هستند.",
+        "از سه‌راه‌های غیراستاندارد و کشیدن بار بیش از حد از یک پریز جلوگیری شده است.",
+        "قوانین قفل و برچسب‌گذاری (LOTO) در هنگام تعمیرات کاملاً رعایت می‌شود.",
+        "هم‌بندی فلزی تجهیزات انجام شده و مقاومت چاه ارت استاندارد است.",
+        "دکمه‌های قطع اضطراری (Emergency Stop) در دسترس، سالم و تست شده‌اند.",
+        "پرسنل از تجهیزات حفاظت فردی ضد برق و مقاوم به آرک (Arc Flash) استفاده می‌کنند."
+      ]
+    };
+
+    const moduleTitles = {
+      1: "بازرسی ایمنی تابلوهای برق",
+      2: "بازرسی ایمنی پست‌های برق",
+      3: "تجهیزات برقی پرتابل و ابزارها",
+      4: "ایمنی عمومی و رفتاری برق"
+    };
+
+    let activeModuleId = null;
+    let inspectionAnswers = {};
+
+    function switchTab(tab) {
+      document.getElementById('view-modules').style.display = (tab === 'modules') ? 'block' : 'none';
+      document.getElementById('view-form').style.display = 'none';
+      document.getElementById('view-history').style.display = (tab === 'history') ? 'block' : 'none';
+
+      document.getElementById('nav-btn-home').classList.toggle('active', tab === 'modules');
+      document.getElementById('nav-btn-history').classList.toggle('active', tab === 'history');
+
+      if (tab === 'history') renderHistory();
+    }
+
+    function startInspection(moduleId) {
+      activeModuleId = moduleId;
+      inspectionAnswers = {};
+      document.getElementById('ins-type').value = moduleTitles[moduleId];
+      document.getElementById('ins-date').value = new Intl.DateTimeFormat('fa-IR').format(new Date());
+      
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+
+      questionBank[moduleId].forEach((q, idx) => {
+        inspectionAnswers[idx] = { status: 'بله', comment: '' };
+
+        const qBox = document.createElement('div');
+        qBox.className = 'question-box';
+        qBox.innerHTML = `
+          <div class="question-title">${idx + 1}. ${q}</div>
+          <div class="radio-group">
+            <div class="radio-btn selected-yes" id="btn-yes-${idx}" onclick="setAnswer(${idx}, 'بله')">منطبق (بله)</div>
+            <div class="radio-btn" id="btn-no-${idx}" onclick="setAnswer(${idx}, 'خیر')">عدم انطباق (خیر)</div>
+            <div class="radio-btn" id="btn-na-${idx}" onclick="setAnswer(${idx}, 'عدم کاربرد')">عدم کاربرد</div>
+          </div>
+          <input type="text" id="comment-${idx}" class="comment-input" placeholder="شرح عدم انطباق یا اقدام اصلاحی..." oninput="setComment(${idx}, this.value)">
+        `;
+        container.appendChild(qBox);
+      });
+
+      document.getElementById('view-modules').style.display = 'none';
+      document.getElementById('view-form').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    function setAnswer(idx, val) {
+      inspectionAnswers[idx].status = val;
+      const bYes = document.getElementById(`btn-yes-${idx}`);
+      const bNo = document.getElementById(`btn-no-${idx}`);
+      const bNa = document.getElementById(`btn-na-${idx}`);
+      const cInput = document.getElementById(`comment-${idx}`);
+
+      bYes.className = 'radio-btn' + (val === 'بله' ? ' selected-yes' : '');
+      bNo.className = 'radio-btn' + (val === 'خیر' ? ' selected-no' : '');
+      bNa.className = 'radio-btn' + (val === 'عدم کاربرد' ? ' selected-na' : '');
+
+      if (val === 'خیر') {
+        cInput.style.display = 'block';
+        cInput.focus();
+      } else {
+        cInput.style.display = 'none';
+      }
+    }
+
+    function setComment(idx, val) {
+      inspectionAnswers[idx].comment = val;
+    }
+
+    function cancelInspection() {
+      if (confirm("آیا از انصراف اطمینان دارید؟ داده‌های وارد شده ذخیره نخواهند شد.")) {
+        switchTab('modules');
+      }
+    }
+
+    async function saveInspection() {
+      const tag = document.getElementById('ins-tag').value.trim();
+      const inspector = document.getElementById('ins-inspector').value.trim();
+      if (!tag || !inspector) {
+        alert("لطفاً نام بازرس و کد تجهیز را وارد نمایید.");
+        return;
+      }
+
+      let hasNonCompliance = false;
+      const details = [];
+
+      questionBank[activeModuleId].forEach((q, idx) => {
+        const ans = inspectionAnswers[idx];
+        if (ans.status === 'خیر') hasNonCompliance = true;
+        details.push({
+          qIndex: idx + 1,
+          question: q,
+          status: ans.status,
+          comment: ans.comment || '-'
+        });
+      });
+
+      const record = {
+        type: moduleTitles[activeModuleId],
+        date: document.getElementById('ins-date').value,
+        shift: document.getElementById('ins-shift').value,
+        inspector: inspector,
+        tag: tag,
+        location: document.getElementById('ins-location').value.trim() || 'نامشخص',
+        voltage: document.getElementById('ins-voltage').value,
+        hasNonCompliance: hasNonCompliance,
+        details: details,
+        createdAt: new Date().getTime()
+      };
+
+      await db.inspections.add(record);
+      alert("اطلاعات بازرسی با موفقیت در دیتابیس محلی ذخیره شد.");
+      switchTab('history');
+    }
+
+    async function renderHistory() {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const records = await db.inspections.reverse().toArray();
+      const listContainer = document.getElementById('history-list');
+      listContainer.innerHTML = '';
+
+      const filtered = records.filter(r => 
+        r.tag.toLowerCase().includes(query) ||
+        r.inspector.toLowerCase().includes(query) ||
+        r.location.toLowerCase().includes(query) ||
+        r.type.toLowerCase().includes(query)
+      );
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:20px;">هیچ رکوردی یافت نشد.</p>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `card history-card ${item.hasNonCompliance ? 'has-issue' : ''}`;
+        
+        let issueBadge = item.hasNonCompliance 
+          ? `<span class="badge-danger">دارای عدم انطباق</span>` 
+          : `<span style="color:var(--success); font-size:0.75rem; font-weight:bold;">کاملاً منطبق</span>`;
+
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:0.95rem;">${item.type} (${item.tag})</strong>
+            ${issueBadge}
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.6;">
+            تاریخ: ${item.date} | شیفت: ${item.shift}<br>
+            بازرس: ${item.inspector} | محل: ${item.location} | ولتاژ: ${item.voltage}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;" onclick="exportSingleToExcel(${item.id})">اکسل این فرم</button>
+            <button class="btn btn-danger" style="padding:6px 12px; font-size:0.8rem;" onclick="deleteRecord(${item.id})">حذف</button>
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    async function deleteRecord(id) {
+      if (confirm("آیا از حذف این رکورد اطمینان دارید؟")) {
+        await db.inspections.delete(id);
+        renderHistory();
+      }
+    }
+
+    // صدور تک‌بازدید به فایل اکسل راست‌به‌چپ
+    async function exportSingleToExcel(id) {
+      const rec = await db.inspections.get(id);
+      if (!rec) return;
+
+      const rows = [
+        ["شناسنامه و اطلاعات پایه بازرسی ایمنی برق"],
+        ["کد / تگ تجهیز", rec.tag, "نوع چک‌لیست", rec.type],
+        ["تاریخ بازرسی", rec.date, "شیفت کاری", rec.shift],
+        ["نام بازرس", rec.inspector, "موقعیت / سالن", rec.location],
+        ["سطح ولتاژ", rec.voltage, "وضعیت کلی", rec.hasNonCompliance ? "دارای عدم انطباق" : "مورد تایید"],
+        [],
+        ["ردیف", "شرح ضابطه و سوال بازرسی", "وضعیت انطباق", "توضیحات و اقدامات اصلاحی"]
+      ];
+
+      rec.details.forEach(d => {
+        rows.push([d.qIndex, d.question, d.status, d.comment]);
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!dir'] = "rtl";
+      XLSX.utils.book_append_sheet(wb, ws, "گزارش بازرسی");
+      XLSX.writeFile(wb, `Inspection_${rec.tag}_${rec.date.replace(/[\/\\]/g, '-')}.xlsx`);
+    }
+
+    // صدور کل پایگاه داده به صورت اکسل تجمیعی
+    async function exportAllToExcel() {
+      const records = await db.inspections.toArray();
+      if (records.length === 0) {
+        alert("هیچ رکوردی برای صدور اکسل وجود ندارد.");
+        return;
+      }
+
+      const rows = [
+        ["شناسه", "نوع چک‌لیست", "کد تجهیز", "تاریخ", "شیفت", "نام بازرس", "محل استقرار", "سطح ولتاژ", "نتیجه نهایی", "شماره سوال", "شرح ضابطه بازرسی", "وضعیت", "توضیحات / اقدام اصلاحی"]
+      ];
+
+      records.forEach(r => {
+        r.details.forEach(d => {
+          rows.push([
+            r.id,
+            r.type,
+            r.tag,
+            r.date,
+            r.shift,
+            r.inspector,
+            r.location,
+            r.voltage,
+            r.hasNonCompliance ? "دارای عدم انطباق" : "منطبق",
+            d.qIndex,
+            d.question,
+            d.status,
+            d.comment
+          ]);
+        });
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!dir'] = "rtl";
+      XLSX.utils.book_append_sheet(wb, ws, "کل سوابق بازرسی برق");
+      XLSX.writeFile(wb, `Full_Electrical_HSE_Report_${new Date().getTime()}.xlsx`);
+    }
+  </script>
+</body>
+</html>
